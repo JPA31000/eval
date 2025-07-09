@@ -158,6 +158,22 @@
         .export-btn:hover {
             background: #c82333;
         }
+
+        .reset-btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: #0056b3;
+        }
         
         .legend {
             background: #f8f9fa;
@@ -272,6 +288,7 @@
         
         <div style="text-align: center; padding: 20px;">
             <button class="export-btn" onclick="exportToPDF()">Exporter en PDF</button>
+            <button class="reset-btn" onclick="resetData()">Réinitialiser</button>
         </div>
     </div>
 
@@ -293,13 +310,42 @@
             { nom: "EMNB Mots mêlés : Architecture & BTP", hasTime: true, isEMNB: true },
             { nom: "EMNB Snake Quiz – Construction BTP", hasTime: true, isEMNB: true },
             { nom: "EMNB Puzzle Sliding BTP", hasTime: true, isEMNB: true },
-            { nom: "EMNB Jeu du Pendu – Thème BTP", hasTime: true, isEMNB: true },
-            { nom: "Épreuve surprise BTP", hasTime: true, isEMNB: true }
+            { nom: "EMNB Jeu du Pendu – Thème BTP", hasTime: true, isEMNB: true }
         ];
 
         const groupScores = {};
         for (let i = 1; i <= 11; i++) {
             groupScores[`groupe${i}`] = {};
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('evaluationData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                Object.keys(data).forEach(groupId => {
+                    groupScores[groupId] = data[groupId];
+                });
+            }
+        }
+
+        function fillSavedValues(groupId) {
+            const groupData = groupScores[groupId];
+            if (!groupData) return;
+            Object.keys(groupData).forEach(index => {
+                const data = groupData[index];
+                if (data.etat !== undefined) {
+                    const etatEl = document.getElementById(`${groupId}_etat_${index}`);
+                    if (etatEl) etatEl.value = data.etat;
+                }
+                if (ateliers[index].hasTime && data.time !== undefined) {
+                    const timeEl = document.getElementById(`${groupId}_time_${index}`);
+                    if (timeEl) timeEl.value = data.time;
+                }
+                if (data.esprit !== undefined) {
+                    const espritEl = document.getElementById(`${groupId}_esprit_${index}`);
+                    if (espritEl) espritEl.value = data.esprit;
+                }
+            });
         }
 
         function showTab(tabId) {
@@ -434,6 +480,15 @@
         }
 
         function updateScore(groupId, atelierIndex) {
+            const etat = document.getElementById(`${groupId}_etat_${atelierIndex}`).value;
+            const esprit = document.getElementById(`${groupId}_esprit_${atelierIndex}`).value;
+            const timeEl = document.getElementById(`${groupId}_time_${atelierIndex}`);
+            const time = timeEl ? timeEl.value : '';
+
+            if (!groupScores[groupId]) groupScores[groupId] = {};
+            groupScores[groupId][atelierIndex] = { etat, time, esprit };
+            localStorage.setItem('evaluationData', JSON.stringify(groupScores));
+
             // Mettre à jour le classement global à chaque modification
             updateClassement();
         }
@@ -578,15 +633,26 @@
             doc.save('evaluation_ateliers.pdf');
         }
 
+        function resetData() {
+            const password = prompt('Entrez le mot de passe pour réinitialiser :');
+            if (password === 'btp2024') {
+                localStorage.removeItem('evaluationData');
+                location.reload();
+            } else if (password !== null) {
+                alert('Mot de passe incorrect.');
+            }
+        }
+
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
+            loadSavedData();
             for (let i = 1; i <= 11; i++) {
                 const groupId = `groupe${i}`;
                 const evaluationDiv = document.getElementById(`evaluation-${groupId}`);
                 evaluationDiv.innerHTML = createEvaluationTable(groupId);
+                fillSavedValues(groupId);
             }
             updateClassement();
         });
     </script>
-</body>
-</html>
+</body></html>
