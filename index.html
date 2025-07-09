@@ -326,6 +326,19 @@
                     groupScores[groupId] = data[groupId];
                 });
             }
+
+            fetch('/api/evaluations')
+                .then(res => res.json())
+                .then(data => {
+                    Object.keys(data).forEach(groupId => {
+                        groupScores[groupId] = data[groupId];
+                    });
+                    for (let i = 1; i <= 11; i++) {
+                        fillSavedValues(`groupe${i}`);
+                    }
+                    updateClassement();
+                })
+                .catch(err => console.error('Failed to load server data', err));
         }
 
         function fillSavedValues(groupId) {
@@ -489,6 +502,12 @@
             groupScores[groupId][atelierIndex] = { etat, time, esprit };
             localStorage.setItem('evaluationData', JSON.stringify(groupScores));
 
+            fetch('/api/evaluations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(groupScores)
+            }).catch(err => console.error('Failed to save server data', err));
+
             // Mettre à jour le classement global à chaque modification
             updateClassement();
         }
@@ -637,7 +656,11 @@
             const password = prompt('Entrez le mot de passe pour réinitialiser :');
             if (password === 'btp2024') {
                 localStorage.removeItem('evaluationData');
-                location.reload();
+                fetch('/api/evaluations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).finally(() => location.reload());
             } else if (password !== null) {
                 alert('Mot de passe incorrect.');
             }
@@ -645,14 +668,12 @@
 
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
-            loadSavedData();
             for (let i = 1; i <= 11; i++) {
                 const groupId = `groupe${i}`;
                 const evaluationDiv = document.getElementById(`evaluation-${groupId}`);
                 evaluationDiv.innerHTML = createEvaluationTable(groupId);
-                fillSavedValues(groupId);
             }
+            loadSavedData();
             updateClassement();
         });
-    </script>
-</body></html>
+    </script></body></html>
